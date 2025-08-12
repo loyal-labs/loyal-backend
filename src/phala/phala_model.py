@@ -1,7 +1,13 @@
 import asyncio
 import logging
+from typing import Any
 
-from src.phala.phala_schemas import PhalaEnvFields
+from src.phala.phala_constants import (
+    COMPLETIONS_ENDPOINT,
+    PHALA_BASE_URL,
+    SELECTED_MODEL,
+)
+from src.phala.phala_schemas import PhalaChatMessage, PhalaEnvFields
 from src.shared.http import AsyncHttpClient
 from src.shared.secrets import OnePasswordManager, SecretsFactory
 
@@ -38,6 +44,43 @@ class PhalaModel:
 
         self.api_key = fetched_secrets.get(PhalaEnvFields.API_KEY.value)
         self.host = fetched_secrets.get(PhalaEnvFields.HOST.value)
+
+    async def get_completions(
+        self,
+        messages: list[PhalaChatMessage],
+        max_tokens: int = 1024,
+        stream: bool = False,
+    ) -> dict[str, Any]:
+        """
+        Get completions from the Phala Serverless TEE.
+        """
+        url = f"{PHALA_BASE_URL}/{COMPLETIONS_ENDPOINT}"
+        headers = {
+            "Authorization": f"Bearer {self.api_key}",
+            "Content-Type": "application/json",
+        }
+        data = {
+            "model": SELECTED_MODEL,
+            "messages": [message.model_dump() for message in messages],
+            "max_tokens": max_tokens,
+            "stream": stream,
+        }
+
+        try:
+            response = await self.http_client.request(
+                url=url,
+                headers=headers,
+                data=data,
+                method="POST",
+            )
+        except Exception as e:
+            logger.error("Error getting completions: %s", e)
+            raise e
+
+        assert isinstance(response, dict), (
+            "Phala completion response is not a dictionary"
+        )
+        return response
 
 
 class PhalaFactory:

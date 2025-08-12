@@ -1,5 +1,7 @@
 from enum import Enum
 
+from pydantic import BaseModel
+
 
 class PhalaEnvFields(Enum):
     """
@@ -8,3 +10,8 @@ class PhalaEnvFields(Enum):
 
     API_KEY = "credential"
     HOST = "hostname"
+
+
+class PhalaChatMessage(BaseModel):
+    role: str
+    content: str

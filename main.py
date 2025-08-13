@@ -6,6 +6,7 @@ from dotenv import load_dotenv
 from grpclib._typing import IServable
 from grpclib.server import Server
 
+from src.query.query_service import QueryService
 from src.shared.logging_utils import configure_logging
 from src.shared.secrets import SecretsFactory
 
@@ -24,7 +25,7 @@ async def start_server():
     assert secrets.grpc_host is not None, "GRPC_HOST is required"
     assert secrets.grpc_port is not None, "GRPC_PORT is required"
 
-    services: list[IServable] = []
+    services: list[IServable] = [QueryService()]
     server = Server(services)
     logger.debug("Server created")
 

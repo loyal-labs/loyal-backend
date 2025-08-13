@@ -2,7 +2,7 @@ from enum import Enum
 
 from pydantic import BaseModel
 
-from grpc.query import DialogEntry, QueryRequest, QueryResponse, QueryStreamResponse
+from grpc.query import DialogEntry, QueryRequest, QueryResponse
 
 
 class Role(Enum):
@@ -41,12 +41,4 @@ class QueryResponseSchema(BaseModel):
 
     @classmethod
     def from_grpc(cls, message: QueryResponse) -> "QueryResponseSchema":
-        return cls(response=message.response)
-
-
-class QueryStreamResponseSchema(BaseModel):
-    response: str
-
-    @classmethod
-    def from_grpc(cls, message: QueryStreamResponse) -> "QueryStreamResponseSchema":
         return cls(response=message.response)

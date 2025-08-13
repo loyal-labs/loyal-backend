@@ -32,5 +32,4 @@ message QueryStreamResponse {
 
 service QueryService {
     rpc Query(QueryRequest) returns (QueryResponse);
-    rpc QueryStream(QueryRequest) returns (stream QueryStreamResponse);
 }

@@ -1,20 +1,15 @@
-import asyncio
 import logging
-from typing import Any
+from typing import Any, override
 
-from src.phala.phala_constants import (
-    COMPLETIONS_ENDPOINT,
-    PHALA_BASE_URL,
-    SELECTED_MODEL,
-)
+from src.phala.phala_constants import COMPLETIONS_ENDPOINT, SELECTED_MODEL
 from src.phala.phala_schemas import PhalaChatMessage, PhalaEnvFields
-from src.shared.http import AsyncHttpClient
+from src.shared.http import AsyncHttpClient, AsyncSingleton
 from src.shared.secrets import OnePasswordManager, SecretsFactory
 
 logger = logging.getLogger("loyal-web-backend.phala.phala_model")
 
 
-class PhalaModel:
+class PhalaModel(AsyncSingleton):
     default_item_name = "PHALA_SERVERLESS_TEE"
 
     def __init__(self):
@@ -24,8 +19,9 @@ class PhalaModel:
         self.api_key: str | None = None
         self.host: str | None = None
 
+    @override
     @classmethod
-    async def create(cls) -> "PhalaModel":
+    async def get_instance(cls) -> "PhalaModel":
         logger.debug("Creating PhalaModel")
         secrets_manager = await SecretsFactory.get_instance()
         self = cls()
@@ -48,13 +44,15 @@ class PhalaModel:
     async def get_completions(
         self,
         messages: list[PhalaChatMessage],
-        max_tokens: int = 1024,
-        stream: bool = False,
     ) -> dict[str, Any]:
         """
         Get completions from the Phala Serverless TEE.
         """
-        url = f"{PHALA_BASE_URL}/{COMPLETIONS_ENDPOINT}"
+        assert self.host is not None, "Host is not set"
+        assert self.api_key is not None, "API key is not set"
+
+        url = f"{self.host}/{COMPLETIONS_ENDPOINT}"
+
         headers = {
             "Authorization": f"Bearer {self.api_key}",
             "Content-Type": "application/json",
@@ -62,8 +60,6 @@ class PhalaModel:
         data = {
             "model": SELECTED_MODEL,
             "messages": [message.model_dump() for message in messages],
-            "max_tokens": max_tokens,
-            "stream": stream,
         }
 
         try:
@@ -81,26 +77,3 @@ class PhalaModel:
             "Phala completion response is not a dictionary"
         )
         return response
-
-
-class PhalaFactory:
-    """Global singleton factory for PhalaModel."""
-
-    _instance: PhalaModel | None = None
-    _lock = asyncio.Lock()
-
-    @classmethod
-    async def get_instance(cls) -> PhalaModel:
-        """Get or create singleton instance of PhalaModel."""
-        if cls._instance is None:
-            async with cls._lock:
-                if cls._instance is None:
-                    logger.info("Creating PhalaModel singleton")
-                    cls._instance = await PhalaModel.create()
-                    logger.info("PhalaModel singleton created")
-        return cls._instance
-
-    @classmethod
-    def reset_instance(cls):
-        """Reset the singleton instance (useful for testing)."""
-        cls._instance = None
